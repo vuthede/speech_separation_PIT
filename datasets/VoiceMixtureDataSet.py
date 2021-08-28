@@ -42,6 +42,7 @@ class AudioMixtureDataset(torch.utils.data.Dataset):
             y[:, :, :, j] = np.load(self.database_dir_path+'/crm/' + info[j + 1])
 
         # assert y[:,:,:,0] != y[:,:,:,1]
+        X = np.transpose(X, (2, 0,1))
         return torch.FloatTensor(X), torch.FloatTensor(y)
 
 def loss_func(S_true,S_pred,gamma=0.1,num_speaker=2):
@@ -75,7 +76,8 @@ if __name__ == "__main__":
     print(len(dataset))
     X1, y1 = dataset[0]
     X2, y2 = dataset[0]
-    loss = loss_func(y1, y2)
-    loss2 = loss_func2(y1.unsqueeze(0), y2.unsqueeze(0))
+    print(X1.shape)
+    # loss = loss_func(y1, y2)
+    # loss2 = loss_func2(y1.unsqueeze(0), y2.unsqueeze(0))
 
-    print("Loss:", loss, loss2)
+    # print("Loss:", loss, loss2)

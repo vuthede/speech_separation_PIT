@@ -41,12 +41,10 @@ class AverageMeter(object):
 
 
 # Transform
-transform = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
+transform = transforms.Compose([transforms.ToTensor()])
 
 
-transform_valid = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
+transform_valid = transforms.Compose([transforms.ToTensor()])
 
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
@@ -75,7 +73,7 @@ def train_one_epoch(traindataloader, model, optimizer, epoch, args=None, tensorb
             Y_pred = model(X)
 
             # Contrastive loss
-            loss = loss_func2(S_true=Y,S_pred=Y_pred, gamma=0.1, num_speaker=2)
+            loss = loss_func2(S_true=Y.cpu(),S_pred=Y_pred.cpu(), gamma=0.1, num_speaker=2)
         
             optimizer.zero_grad()
             loss.backward()
@@ -117,7 +115,7 @@ def validate(valdataloader, model, optimizer, epoch, args, tensorboardLogger=Non
         Y_pred = model(X)
 
         # Contrastive loss
-        loss = loss_func2(S_true=Y,S_pred=Y_pred, gamma=0.1, num_speaker=2)
+        loss = loss_func2(S_true=Y.cpu(),S_pred=Y_pred.cpu(), gamma=0.1, num_speaker=2)
     
 
         losses.update(loss.item())
@@ -144,7 +142,7 @@ def main(args):
     tensorboardLogger = TensorBoardLogger(root="runs", experiment_name=args.snapshot)
 
     # Init model
-    arch_dict = {"AudioMixtureDataset":AudioMixtureDataset}
+    arch_dict = {"AudioOnlyModel":AudioOnlyModel}
     assert args.arch in arch_dict.keys(), f'Backbone should be one of {arch_dict.keys()}'
     print(f'Use backbone :{args.arch}')
     model = arch_dict[args.arch]()
@@ -188,7 +186,6 @@ def main(args):
 
             # Train    
             train_one_epoch(dataloader, model, optimizer, epoch, args, tensorboardLogger)
-
             save_checkpoint({
                 'epoch': epoch,
                 'plfd_backbone': model.state_dict()

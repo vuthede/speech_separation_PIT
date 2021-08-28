@@ -6,4 +6,4 @@ CUDA_VISIBLE_DEVICE=0 taskset --cpu-list 0-6 python3 train.py \
               --consin_lr_scheduler 1\
               --max_num_epoch 100\
               --lr 0.001\
-              --train_batchsize 4\
+              --train_batchsize 2\
