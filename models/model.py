@@ -46,29 +46,33 @@ class AudioOnlyModel(nn.Module):
         self.fc2 = torch.nn.Linear(600, 600)
         self.fc3 = torch.nn.Linear(600, 600)
         self.fc_mask = torch.nn.Linear(600, 257*4) # 2 complex mask --> 4 mask
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
-
-
-
+        self.instance_norm = nn.InstanceNorm2d(2)
      
         
 
 
     def forward(self, x):
+        # Normalize x : Bx2xWxH
+        # x = self.instance_norm(x)  # Normalize each sample in the batch by the runing_mean and running_std of the batch
+        # x = torch.norm()
+
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
-        x = self.conv7(x)
-        x = self.conv8(x)
-        x = self.conv9(x)
-        x = self.conv10(x)
-        x = self.conv11(x)
-        x = self.conv12(x)
-        x = self.conv13(x)
-        x = self.conv14(x)
+        # x = self.conv4(x)
+        # x = self.conv5(x)
+        # x = self.conv6(x)
+        # x = self.conv7(x)
+        # x = self.conv8(x)
+        # x = self.conv9(x)
+        # x = self.conv10(x)
+        # x = self.conv11(x)
+        # x = self.conv12(x)
+        # x = self.conv13(x)
+        # x = self.conv14(x)
         x = self.conv15(x)
 
         # Convert to Batch x Sequence x Feature
@@ -81,9 +85,13 @@ class AudioOnlyModel(nn.Module):
         # print(f'after bilstm: ',x.shape)
 
         x = self.fc1(x)
-        x = self.fc2(x)
-        x = self.fc3(x)
+        # x = self.relu(x)
+        # x = self.fc2(x)
+        # x = self.relu(x)
+        # x = self.fc3(x)
+        # x = self.relu(x)
         x = self.fc_mask(x)
+        # x = self.sigmoid(x)
         x = x.view(x.shape[0], x.shape[1], 257, 2, 2)
 
         # print(f'fc_mask: ',x.shape)
