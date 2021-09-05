@@ -2,7 +2,7 @@
 The simple project to separate mixed voice (2 clean voices) to 2 separate voices.
 
 
-**Result Example**: 
+**Result Example (Clisk to hear the voices)**: 
 [mix](output_sample/mix.mp3) ||  [prediction voice1](output_sample/pred1.mp3) || [prediction voice2](output_sample/pred2.mp3)
 
 *Mix Spectrogram*
