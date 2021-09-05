@@ -1,8 +1,8 @@
 # Speech Separation
-The simple project to separate mixed voice (2 clean voice) to 2 separate voices.
+The simple project to separate mixed voice (2 clean voices) to 2 separate voices.
 
-Here mixed voice and predicted separated voices of the trained model
 
+**Result Example**: 
 [mix](output_sample/mix.mp3) ||  [prediction voice1](output_sample/pred1.mp3) || [prediction voice2](output_sample/pred2.mp3)
 
 ## 1. Quick train and test
@@ -18,7 +18,7 @@ It will take about **ONLY 2-3 HOURS** to train with normal GPU. After each epoch
 + **Input**:
    The Complex spectrogram. Get from the raw mixed audio signal
 + **Output**:
-   The complex ratio mask (cRM). Then We can infer the complex spectrogram of each single voice. Then we can get the separated voices.
+   The complex ratio mask (cRM) ---> complex spectrogram ---> separated voices.
 + **Model**:
   Use the simple version of [this implementation](https://github.com/bill9800/speech_separation/blob/master/model/lib/model_AO.py) , which is defined in paper [Looking to Listen at the Cocktail Party: A Speaker-Independent Audio-Visual Model for Speech Separation](https://arxiv.org/abs/1804.03619)
 
