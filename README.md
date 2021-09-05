@@ -5,6 +5,19 @@ The simple project to separate mixed voice (2 clean voices) to 2 separate voices
 **Result Example**: 
 [mix](output_sample/mix.mp3) ||  [prediction voice1](output_sample/pred1.mp3) || [prediction voice2](output_sample/pred2.mp3)
 
+*Mix Spectrogram*
+
+![mix](https://user-images.githubusercontent.com/19920599/132132582-0c504d5a-935c-484b-90db-300735cf206b.png)
+
+*Predict Voice1's Spectrogram*
+
+![pred1](https://user-images.githubusercontent.com/19920599/132132632-830b5826-230d-4c0f-96c3-c4b8f9d3b146.png)
+
+*Predict Voice2's Spectrogram*
+
+![pred2](https://user-images.githubusercontent.com/19920599/132132678-d7f2a12b-8e9b-416d-b057-03bb915be38b.png)
+
+
 ## 1. Quick train and test
 ### Step 1:
 Download [LibriMixSmall](https://zenodo.org/record/3871592/files/MiniLibriMix.zip?download=1 ), extract it and move it to the root of the project. 
