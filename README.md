@@ -26,8 +26,13 @@ Download [LibriMixSmall](https://zenodo.org/record/3871592/files/MiniLibriMix.zi
 
 It will take about **ONLY 2-3 HOURS** to train with normal GPU. After each epoch, the prediction is generated to `./viz_outout` folder.
 
+## 2. Quick inference
+`./inference.sh`
+The result will be generated to `./viz_outout` folder.
 
-## 2. More detail
+
+
+## 3. More detail
 + **Input**:
    The Complex spectrogram. Get from the raw mixed audio signal
 + **Output**:
