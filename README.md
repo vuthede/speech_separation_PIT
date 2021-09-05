@@ -18,7 +18,7 @@ The simple project to separate mixed voice (2 clean voices) to 2 separate voices
 ![pred2](https://user-images.githubusercontent.com/19920599/132132678-d7f2a12b-8e9b-416d-b057-03bb915be38b.png)
 
 
-## 1. Quick train and test
+## 1. Quick train
 ### Step 1:
 Download [LibriMixSmall](https://zenodo.org/record/3871592/files/MiniLibriMix.zip?download=1 ), extract it and move it to the root of the project. 
 ### Step 2:
