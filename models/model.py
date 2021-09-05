@@ -1,3 +1,8 @@
+"""
+\ Mostly based from here https://github.com/bill9800/speech_separation/blob/master/model/lib/model_AO.py
+But I simplify the model a bit. Complex model does not work currently, keep figuring out the reason
+"""
+
 
 import torch
 import torch.nn as nn
@@ -78,11 +83,9 @@ class AudioOnlyModel(nn.Module):
         # Convert to Batch x Sequence x Feature
         x = x.permute(0,2,3,1).contiguous()
         x = x.view(x.shape[0], x.shape[1], -1)
-        # print(f'conv15: ',x.shape)
 
         # BiLstm and fc --> mask
         x, _ = self.bilstm(x)
-        # print(f'after bilstm: ',x.shape)
 
         x = self.fc1(x)
         # x = self.relu(x)
@@ -93,13 +96,6 @@ class AudioOnlyModel(nn.Module):
         x = self.fc_mask(x)
         # x = self.sigmoid(x)
         x = x.view(x.shape[0], x.shape[1], 257, 2, 2)
-
-        # print(f'fc_mask: ',x.shape)
-
-
-
-
-
 
         return x
 

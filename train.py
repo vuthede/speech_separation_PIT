@@ -11,12 +11,12 @@ from torch.utils.data import DataLoader
 import cv2
 import sys
 from models.model import AudioOnlyModel
-from torchvision import  transforms
 import math
-from datasets.VoiceMixtureDataSet import AudioMixtureDataset, loss_func2, loss_func3
+from datasets.VoiceMixtureDataSet import AudioMixtureDataset
+from losses.pit_loss import permutation_invariant_training_loss
 from datasets.LibriMixDataSet import LibriMix
 
-# from logger.TensorboardLogger import TensorBoardLogger
+from logger.TensorboardLogger import TensorBoardLogger
 from tqdm import tqdm
 from lib import utils
 import soundfile as sf
@@ -46,16 +46,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-# Transform
-transform = transforms.Compose([transforms.ToTensor()])
-
-
-transform_valid = transforms.Compose([transforms.ToTensor()])
 
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     print(f'Save checkpoint to {filename}')
-
 
 
 def decode(F_mix, crm):
@@ -74,30 +68,20 @@ def train_one_epoch(traindataloader, model, optimizer, epoch, args=None, tensorb
 
     with tqdm(traindataloader, unit="batch") as tepoch:
         for (X, Y) in tepoch:
-            
             i += 1
-            # if i>=40:
-            #     break
         
             tepoch.set_description(f"Epoch {epoch}")
-            X = X.to(device)
             
-            # Preprocessing X with shape Bx2xWxH
-            # Example from here https://enzokro.dev/spectrogram_normalizations/2020/09/10/Normalizing-spectrograms-for-deep-learning.html
-            # to help prevent skew data, more easy to learn
-            # X[:,0,:,:] = torch.log(X[:,0,:,:] ** 2 + 1)
-
-            # X[:,0,:,:] =  torch.log(torch.sqrt(torch.square(X[:,0,:,:])+torch.square(X[:,1,:,:])) + 1 )
-            # X[:,1,:,:] = torch.arctan(torch.divide(X[:,0,:,:],X[:,1,:,:]+1e-6)) 
-
+            X = X.to(device)
+        
             # Inference model to generate heatmap
             Y_pred = model(X)
             Y_pred = Y_pred 
 
-            # Contrastive loss
-            loss = loss_func3(S_true=Y.cpu(),S_pred=Y_pred.cpu(), num_speaker=2, only_real=False)
+            #  Permutation Invariant Training Loss
+            loss = permutation_invariant_training_loss(S_true=Y.cpu(),S_pred=Y_pred.cpu(), num_speaker=2, only_real=False)
 
-            ######## New loss #############
+            ######## Pairwise_neg_sisdr #############
             est_source = torch.zeros(X.shape[0], 2, 48000)
             source = torch.zeros(X.shape[0], 2, 48000)
             for b in range(X.shape[0]):
@@ -106,27 +90,22 @@ def train_one_epoch(traindataloader, model, optimizer, epoch, args=None, tensorb
                     source[b,j,:] =  decode(X[b,:,:,:].cpu(), Y[b,:,:,:,j].cpu())
             est_source = torch.Tensor(est_source)
             source = torch.Tensor(source)
-
             loss_sir,_ = loss_func(est_source, source, return_est=True)
-            # print("Loss: ", loss)
-            ###########################3
+            ##########################################
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
             losses.update(loss.item())
 
             # if DEBUG:
-            #     tensorboardLogger.log(f"train/loss", loss.item(), epoch*num_batch+i)
+                # tensorboardLogger.log(f"train/loss", loss.item(), epoch*num_batch+i)
 
             
             tepoch.set_postfix(loss=loss.item(), loss_sir=loss_sir.item())
 
         # Log train averge loss in each dataset
         # tensorboardLogger.log(f"train/loss_avg", losses.avg, epoch)
-
-     
     return losses.avg
 
 def vis_batch(X, Y, Y_pred, batch_number=0, output_viz="./viz"):
@@ -144,7 +123,7 @@ def vis_batch(X, Y, Y_pred, batch_number=0, output_viz="./viz"):
     Y_pred = Y_pred.detach().cpu().numpy()
     
     i = 0
-    sample_rate = 16000
+    sample_rate = 8000
     for Xi, Yi, Yi_p in zip(X, Y, Y_pred):
         i += 1
         Xi = np.transpose(Xi, (1,2,0)) # HxWx2
@@ -176,10 +155,6 @@ def vis_batch(X, Y, Y_pred, batch_number=0, output_viz="./viz"):
         sf.write(f"{output_viz}/batch{batch_number}_sample{i}_person2_pred.wav", T2, sample_rate)
 
 
-
-
-
-
 def validate(valdataloader, model, optimizer, epoch, args, tensorboardLogger=None):
     if not os.path.isdir(args.snapshot):
         os.makedirs(args.snapshot)
@@ -203,21 +178,13 @@ def validate(valdataloader, model, optimizer, epoch, args, tensorboardLogger=Non
         print(f'Batch {i} in total {len(valdataloader)}')
         i += 1 
 
-        # Preprocessing X with shape Bx2xWxH
-        # Example from here https://enzokro.dev/spectrogram_normalizations/2020/09/10/Normalizing-spectrograms-for-deep-learning.html
-        # to help prevent skew data, more easy to learn
-        # X[:,0,:,:] = torch.log(X[:,0,:,:] ** 2 + 1)
-
-        # X[:,0,:,:] = torch.log(torch.sqrt(torch.square(X[:,0,:,:])+torch.square(X[:,1,:,:])))
-        # X[:,1,:,:] = torch.arctan(torch.divide(X[:,0,:,:],X[:,1,:,:])) 
-
         # Inference model to generate heatmap
         Y_pred = model(X)
 
-        # Contrastive loss
-        loss = loss_func3(S_true=Y.cpu(),S_pred=Y_pred.cpu(), num_speaker=2, only_real=False)
+        #  Permutation Invariant Training Loss
+        loss = permutation_invariant_training_loss(S_true=Y.cpu(),S_pred=Y_pred.cpu(), num_speaker=2, only_real=False)
 
-        ######## New loss #############
+        ######## Pairwise_neg_sisdr #############
         est_source = torch.zeros(X.shape[0], 2, 48000)
         source = torch.zeros(X.shape[0], 2, 48000)
         for b in range(X.shape[0]):
@@ -226,33 +193,25 @@ def validate(valdataloader, model, optimizer, epoch, args, tensorboardLogger=Non
                 source[b,j,:] =  decode(X[b,:,:,:].cpu(), Y[b,:,:,:,j].cpu())
         est_source = torch.Tensor(est_source)
         source = torch.Tensor(source)
-
         loss_sir,_ = loss_func(est_source, source, return_est=True)
-        #########################
+        ##########################################
 
         losses.update(loss.item())
         losses_sir.update(loss_sir.item())
 
-
         # if DEBUG:
-        #     tensorboardLogger.log(f"val/loss", loss.item(), epoch*num_batch+i)
+            # tensorboardLogger.log(f"val/loss", loss.item(), epoch*num_batch+i)
 
         vis_batch(X_origin, Y, Y_pred, batch_number=i, output_viz=args.output_viz)
    
     message = f"Epoch : {epoch}. Loss validation :{losses.avg}. Loss_sir:{losses_sir.avg}"
     logFile.write(message + "\n")
-    print(message)
 
     # tensorboardLogger.log(f"val/loss_avg", losses.avg, epoch)
-
 
     return losses.avg
 
 
-## Visualization
-def _put_text(img, text, point, color, thickness):
-    img = cv2.putText(img, text, point, cv2.FONT_HERSHEY_SIMPLEX, 0.5 , color, thickness, cv2.LINE_AA)
-    return img
 
 def main(args):
     # pass
@@ -271,64 +230,41 @@ def main(args):
 
     model.to(device)
   
+    # Dataset and Dataloaders
+    train_set = LibriMix(
+        csv_dir=f"{args.data_dir}/metadata/",
+        task="sep_clean",
+        sample_rate=16000,
+        n_src=2,
+        segment=3,
+        return_id=True,
+        set_type='train'
+    )  
 
-    dataset = AudioMixtureDataset(filename=args.data_file,\
-                                 database_dir_path=args.data_dir)
+    val_set = LibriMix(
+        csv_dir=f"{args.data_dir}/metadata/",
+        task="sep_clean",
+        sample_rate=16000,
+        n_src=2,
+        segment=3,
+        return_id=True,
+        set_type='val'
+    )  
   
     dataloader = DataLoader(
-        dataset,
+        train_set,
         batch_size=args.train_batchsize,
         shuffle=True,
         num_workers=8,
         drop_last=True)
 
-
-    valdataset = AudioMixtureDataset(filename=args.data_file_val,\
-                                    database_dir_path=args.data_dir)
-  
     valdataloader = DataLoader(
-        valdataset,
+        val_set,
         batch_size=args.train_batchsize,
         shuffle=True,
         num_workers=8,
         drop_last=True)
 
-    # train_set = LibriMix(
-    #     csv_dir="./MiniLibriMix/metadata/",
-    #     task="sep_clean",
-    #     sample_rate=16000,
-    #     n_src=2,
-    #     segment=3,
-    #     return_id=True,
-    #     set_type='train'
-    # )  
-
-    # val_set = LibriMix(
-    #     csv_dir="./MiniLibriMix/metadata/",
-    #     task="sep_clean",
-    #     sample_rate=16000,
-    #     n_src=2,
-    #     segment=3,
-    #     return_id=True,
-    #     set_type='val'
-    # )  
-  
-    # dataloader = DataLoader(
-    #     train_set,
-    #     batch_size=args.train_batchsize,
-    #     shuffle=True,
-    #     num_workers=8,
-    #     drop_last=True)
-
-    # valdataloader = DataLoader(
-    #     val_set,
-    #     batch_size=args.train_batchsize,
-    #     shuffle=True,
-    #     num_workers=8,
-    #     drop_last=True)
-
-
-   
 
     # Optimizer and Scheduler
     optimizer = torch.optim.Adam(
@@ -344,9 +280,7 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size ,gamma=args.gamma)
 
     
-    # # for im, lm in train_dataset:
-    # #     print(type(im), lm.shape)
-
+    # Training and validation
     if args.mode == 'train':
         for epoch in range(args.max_num_epoch):
 
@@ -367,19 +301,14 @@ def main(args):
 
 
 
-
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description='pfld')
     parser.add_argument('--snapshot', default='./ckpt_170420221_ghostnet_regression_lmks', type=str, metavar='PATH')
     parser.add_argument('--log_file', default="log.txt", type=str)
     parser.add_argument('--output_viz', default="./viz", type=str)
-    parser.add_argument('--data_file', default="log.txt", type=str)
-    parser.add_argument('--data_file_val', default="log.txt", type=str)
-    parser.add_argument('--data_dir', default="log.txt", type=str)
-    parser.add_argument('--train_batchsize', default=16, type=int)
-    parser.add_argument('--val_batchsize', default=8, type=int)
+    parser.add_argument('--data_dir', default="MiniLibriMix", type=str)
+    parser.add_argument('--train_batchsize', default=4, type=int)
+    parser.add_argument('--val_batchsize', default=4, type=int)
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--step_size', default=30, type=float)
     parser.add_argument('--gamma', default=0.5, type=float)
