@@ -45,5 +45,11 @@ The result will be generated to `./viz_outout` folder.
   
 + **Dataset**:
  A small version of `LibriMix` dataset. I get from [LibriMixSmall](https://zenodo.org/record/3871592/files/MiniLibriMix.zip?download=1) 
+ 
+ ## 4. Current problem
+ Due to small dataset size for fast training, the model is a bit overfitting to the training set. Use the bigger dataset will potentially help to overcome that.
+ Some suggestions: 
+ 1. Use the [original LibriMix Dataset](https://github.com/JorisCos/LibriMix) which is way much bigger (around 60 times bigger that what I have trained).
+ 2. Use [this work](https://github.com/bill9800/speech_separation/tree/master/data/audio) to download much more in-the-wild dataset and use `datasets/VoiceMixtureDataset.py` instead of the Libri one that I am using. p/s I have trained and it work too.
 
 
