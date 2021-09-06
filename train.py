@@ -94,7 +94,10 @@ def train_one_epoch(traindataloader, model, optimizer, epoch, args=None, tensorb
             ##########################################
 
             optimizer.zero_grad()
-            loss.backward()
+            if args.use_pairwise_neg_sisdr_loss_for_backward:
+                loss_sir.backward()
+            else:
+                loss.backward()
             optimizer.step()
             losses.update(loss.item())
 
@@ -297,7 +300,7 @@ def main(args):
             }, filename=f'{args.snapshot}/epoch_{epoch}.pth.tar')
             scheduler.step()
     else:
-        validate(dataloader, model, optimizer, 0, args, tensorboardLogger)
+        validate(valdataloader, model, optimizer, 0, args, tensorboardLogger)
 
 
 
@@ -318,6 +321,8 @@ def parse_args():
     parser.add_argument('--vis_dir', default="./vis", type=str)
     parser.add_argument('--consin_lr_scheduler', default=0, type=int) # Default is stepLR
     parser.add_argument('--max_num_epoch', default=100, type=int) # Max number of epochs
+    parser.add_argument('--use_pairwise_neg_sisdr_loss_for_backward', default=0, type=int)
+
 
     
 
